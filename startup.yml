@@ -1,0 +1,15 @@
+- hosts: fkoehler.org
+  remote_user: fkoehler
+  vars_files:
+    - secrets.yml
+  tasks:
+    docker_container:
+      name: "{{ item }}"
+      state: started
+    with_items:
+      - redis
+      - portainer
+      - postgres
+      - nextcloud
+      - gitea
+      - reverse_proxy

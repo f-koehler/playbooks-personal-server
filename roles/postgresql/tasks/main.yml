@@ -1,0 +1,32 @@
+- name: Create volume for PostgreSQL container
+  file:
+    path: /srv/postgresql
+    state: directory
+    recurse: yes
+  become: yes
+
+- name: Create PostgreSQL container
+  docker_container:
+    networks:
+      - name: dockernet
+    image: "postgres:latest"
+    name: postgres
+    volumes:
+      - "/srv/postgresql/:/var/lib/postgresql/data:rw"
+    env:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: "{{ postgresql_root_password }}"
+    ports:
+      - "127.0.0.1:5432:5432"
+    restart_policy: "unless-stopped"
+  become: yes
+  register: postgresql_result
+
+- name: Fetch PostgreSQL IP
+  set_fact:
+    postgresql_ip: "{{ postgresql_result.container.NetworkSettings.IPAddress }}"
+
+- name: Install python bindings for PostgreSQL
+  pacman:
+    name: python-psycopg2
+    state: latest

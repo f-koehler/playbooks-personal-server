@@ -1,0 +1,21 @@
+- block:
+    - name: Install docker
+      pacman:
+        name: docker,python-docker
+        state: latest
+      notify: Restart docker
+    - name: Add users to docker group
+      user:
+        name: "{{ item }}"
+        append: yes
+        groups: docker
+      loop: "{{ docker_users }}"
+    - name: Start docker
+      service:
+        name: docker
+        state: started
+        enabled: yes
+    - name: Create docker network 
+      docker_network:
+        name: dockernet
+  become: yes

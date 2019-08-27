@@ -1,0 +1,4 @@
+- name: Restart reverse_proxy
+  docker_container:
+    name: reverse_proxy
+    restart: yes

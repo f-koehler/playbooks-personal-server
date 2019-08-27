@@ -1,0 +1,21 @@
+- hosts: fkoehler.org
+  remote_user: fkoehler
+  tasks:
+    - name: Update packages
+      pacman:
+        update_cache: yes
+        upgrade: yes
+      become: yes
+    - name: List docker containers
+      shell: docker ps -a --format "{{'{{'}}.Names{{'}}'}}"
+      register: docker_ps_output
+    - name: Store list of docker containers
+      set_fact:
+        docker_containers: "{{ docker_ps_output.stdout_lines }}"
+    - name: Update docker containers
+      docker_container:
+        name: "{{ item }}"
+        pull: yes
+        recreate: yes
+        restart: yes
+      loop: "{{ docker_containers }}"

@@ -1,0 +1,17 @@
+- name: Create volume for portainer container
+  file:
+    path: /srv/portainer
+    state: directory
+    recurse: yes
+  become: yes
+
+- name: Create portainer container
+  docker_container:
+    networks:
+      - name: dockernet
+    name: portainer
+    image: "portainer/portainer"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:rw"
+      - "/srv/portainer:/data"
+    restart_policy: "unless-stopped"

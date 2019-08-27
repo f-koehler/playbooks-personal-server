@@ -1,0 +1,41 @@
+- name: Create volumes for Kimai DB backend
+  file:
+    path: /srv/kimai_db
+    state: directory
+    recurse: yes
+  become: yes
+
+- name: Create container for Kimai DB backend
+  docker_container:
+    networks:
+      - name: dockernet
+    image: mariadb:latest
+    name: kimai_db
+    volumes:
+      - "/srv/kimai_db:/var/lib/mysql:rw"
+    comparisons:
+      env: strict
+    env:
+      MYSQL_ROOT_PASSWORD: "{{ kimai_db_root_password }}"
+      MYSQL_USER: kimai
+      MYSQL_PASSWORD: "{{ kimai_db_password }}"
+      MYSQL_DATABASE: kimai
+    restart_policy: "unless-stopped"
+  become: yes
+
+
+- name: Create container for Kimai
+  docker_container:
+    networks:
+      - name: dockernet
+    image: "kimai/kimai2:apache-debian-master"
+    name: kimai
+    comparisons:
+      env: strict
+    env:
+      APP_ENV: prod
+      DATABASE_URL: "mysql://kimai:{{ kimai_db_password }}@kimai_db/kimai"
+      ADMINMAIL: "{{ kimai_admin_mail }}"
+      ADMINPASS: "{{ kimai_admin_password }}"
+    restart_policy: "unless-stopped"
+  become: yes

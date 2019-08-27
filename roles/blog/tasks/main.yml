@@ -1,0 +1,5 @@
+- name: Install hugo
+  pacman:
+    name: hugo
+    state: present
+  become: yes

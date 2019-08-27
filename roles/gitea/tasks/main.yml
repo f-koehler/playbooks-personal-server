@@ -1,0 +1,160 @@
+- name: Create group git
+  group:
+    name: git
+    gid: 4096
+  become: yes
+  notify: Restart gitea
+
+- name: Create user git
+  user:
+    name: git
+    group: git
+    generate_ssh_key: yes
+    uid: 4096
+    create_home: yes
+    home: /home/git
+    shell: /bin/bash
+  become: yes
+  notify: Restart gitea
+
+- name: Create ssh folder for gitea container
+  file:
+    path: /srv/gitea/git/.ssh
+    group: git
+    owner: git
+    state: directory
+    recurse: yes
+  become: yes
+  notify: Restart gitea
+
+- name: Create config folder for gitea container
+  file:
+    path: /srv/gitea/gitea/conf
+    group: git
+    owner: git
+    state: directory
+    recurse: yes
+  become: yes
+  notify: Restart gitea
+
+- name: Create db user for gitea
+  postgresql_user:
+    login_host: "{{ postgresql_ip }}"
+    login_user: root
+    login_password: "{{ postgresql_root_password }}"
+    name: gitea
+    password: "{{ postgresql_gitea_password }}"
+  become: yes
+
+- name: Create database for gitea
+  postgresql_db:
+    login_host: "{{ postgresql_ip }}"
+    login_user: root
+    login_password: "{{ postgresql_root_password }}"
+    name: "gitea"
+    owner: "gitea"
+  become: yes
+
+- name: Create gitea container
+  docker_container:
+    networks:
+      - name: dockernet
+    image: "gitea/gitea:latest"
+    name: gitea
+    ports:
+      - "127.0.0.1:2222:22"
+    volumes:
+      - "/srv/gitea:/data:rw"
+    env:
+      USER_UID: "4096"
+      USER_GID: "4096"
+      DISABLE_REGISTRATION: "true"
+    comparisons:
+      env: strict
+    restart_policy: "unless-stopped"
+  become: yes
+
+- name: Configure Gitea
+  block:
+    - name: Set run mode
+      ini_file:
+        path: /srv/gitea/gitea/conf/app.ini
+        section: null
+        option: "RUN_MODE"
+        value: "prod"
+      notify: Restart gitea
+    - name: Set domain
+      ini_file:
+        path: /srv/gitea/gitea/conf/app.ini
+        section: "server"
+        option: "DOMAIN"
+        value: "{{ domain_gitea }}"
+      notify: Restart gitea
+    - name: Set SSH domain
+      ini_file:
+        path: /srv/gitea/gitea/conf/app.ini
+        section: "server"
+        option: "SSH_DOMAIN"
+        value: "{{ domain }}"
+      notify: Restart gitea
+    - name: Enable SSH
+      ini_file:
+        path: /srv/gitea/gitea/conf/app.ini
+        section: "server"
+        option: "DISABLE_SSH"
+        value: "false"
+      notify: Restart gitea
+    - name: Set root url
+      ini_file:
+        path: /srv/gitea/gitea/conf/app.ini
+        section: "server"
+        option: "ROOT_URL"
+        value: "https://{{ domain_gitea }}"
+      notify: Restart gitea
+  become: yes
+
+- file:
+    path: /app/gitea
+    group: docker
+    owner: git
+    state: directory
+    recurse: yes
+  become: yes
+
+- copy:
+    src: gitea.sh
+    dest: /app/gitea/gitea
+    mode: "+x"
+  become: yes
+
+- script: create_authorized_keys.sh
+  args:
+    creates: /srv/gitea/git/.ssh/authorized_keys
+  become: yes
+
+- file:
+    path: /srv/gitea/git/.ssh/
+    state: directory
+    owner: git
+    group: git
+    recurse: yes
+  become: yes
+
+- file:
+    src: /srv/gitea/git/.ssh/authorized_keys
+    dest: /home/git/.ssh/authorized_keys
+    state: link
+    owner: git
+    group: docker
+    force: yes
+    follow: no
+  become: yes
+  notify: Restart gitea
+
+- file:
+    dest: /srv/gitea
+    owner: git
+    group: git
+    recurse: yes
+  become: yes
+  notify: Restart gitea

@@ -1,0 +1,5 @@
+- name: Restart haveged
+  service:
+    name: haveged
+    state: restarted
+  become: yes

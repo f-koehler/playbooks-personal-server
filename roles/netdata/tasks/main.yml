@@ -1,0 +1,22 @@
+- name: Install netdata
+  pacman:
+    name: netdata
+    state: latest
+  become: yes
+  notify: Restart netdata
+
+- name: Start netdata
+  service:
+    name: netdata
+    state: started
+    enabled: yes
+  become: yes
+
+# - name: Configure netdata
+#   ini_file:
+#     path: /etc/netdata/netdata.conf
+#     section: web
+#     option: "allow connections from"
+#     value: "localhost 127.0.0.1 {{ reverse_proxy_ip }}"
+#   notify: restart netdata
+#   become: yes

@@ -1,0 +1,12 @@
+- name: Install haveged
+  pacman:
+    name: haveged
+    state: latest
+  become: yes
+  notify: Restart haveged
+- name: Start haveged
+  service:
+    enabled: yes
+    name: haveged
+    state: started
+  become: yes

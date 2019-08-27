@@ -1,0 +1,62 @@
+- name: Create volumes for reverse proxy container
+  file:
+    path: "/srv/reverse_proxy/{{ item }}"
+    group: docker
+    state: directory
+  with_items:
+    - config
+    - log
+  become: yes
+
+- name: Copy reverse proxy config files
+  copy:
+    src: "{{ item }}"
+    dest: /srv/reverse_proxy/config/
+  with_items:
+    - mime.types
+    - nginx.conf
+  become: yes
+  notify: Restart reverse_proxy
+
+- name: Configure hosts
+  template:
+    src: "servers.d/{{ item }}.conf"
+    dest: "/srv/reverse_proxy/config/servers.d/{{ item }}.conf"
+  become: yes
+  notify: Restart reverse_proxy
+  loop:
+    - gitea
+    - netdata
+    - nextcloud
+    - kimai
+    - portainer
+
+- name: Copy SSL certificate to reverse proxy
+  copy:
+    src: "/etc/letsencrypt/live/{{ domain }}/{{ item }}"
+    dest: "/srv/reverse_proxy/config/{{ item }}"
+    remote_src: yes
+  with_items:
+    - fullchain.pem
+    - privkey.pem
+  become: yes
+  notify: Restart reverse_proxy
+
+- name: Create reverse_proxy container
+  docker_container:
+    name: reverse_proxy
+    networks:
+      - name: dockernet
+    image: "nginx:alpine"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/srv/reverse_proxy/config:/etc/nginx/:ro"
+      - "/srv/reverse_proxy/log:/var/log/nginx:rw"
+    restart_policy: "unless-stopped"
+  register: reverse_proxy_result
+
+- name: Fetch reverse proxy IP
+  set_fact:
+    reverse_proxy_ip: "{{ reverse_proxy_result.container.NetworkSettings.IPAddress }}"

@@ -1,0 +1,20 @@
+- hosts: fkoehler.org
+  remote_user: fkoehler
+  vars_files:
+    - secrets.yml
+  roles:
+    - common
+    - haveged
+    - sshd
+    - ssl
+    - docker
+    - redis
+    - portainer
+    - postgresql
+    - nextcloud
+    - gitea
+    - blog
+    - kimai
+    - reverse_proxy
+    - netdata
+    - goaccess

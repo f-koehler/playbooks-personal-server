@@ -1,0 +1,18 @@
+- name: Create volume for redis container
+  file:
+    path: /srv/redis
+    group: docker
+    recurse: yes
+  become: yes
+
+- name: Create redis container
+  docker_container:
+    name: redis
+    networks:
+      - name: dockernet
+    command: redis-server --appendonly yes
+    image: "redis:alpine"
+    volumes:
+      - "/srv/redis:/data:rw"
+    restart_policy: "unless-stopped"
+  become: yes

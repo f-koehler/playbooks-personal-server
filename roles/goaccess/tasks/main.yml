@@ -1,0 +1,12 @@
+- name: Install goaccess
+  pacman:
+    name: goaccess
+    state: latest
+  become: yes
+
+- name: Copy script to run goaccess
+  copy:
+    src: run
+    dest: /usr/bin/run_goaccess
+    mode: "+x"
+  become: yes

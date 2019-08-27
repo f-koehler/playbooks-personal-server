@@ -1,0 +1,17 @@
+- name: Install certbot
+  pacman:
+    name: certbot
+    state: latest
+  become: yes
+
+# - name: Register with Let's Encrypt
+#   command: certbot register -n --agree-tos --email "{{ letsencrypt_email }}"
+#   args:
+#     creates: "/etc/letsencrypt/accounts/acme-v02.api.letsencrypt.org/directory/*/private_key.json"
+#   become: yes
+
+- name: Fetch SSL certificate
+  command: certbot certonly -n -d "{{ letsencrypt_domains | join(',') }}" --standalone --preferred-challenges http-01 --pre-hook "docker stop reverse_proxy || true" --post-hook "docker start reverse_proxy || true"
+  args:
+    creates: "/etc/letsencrypt/archive/{{ domain }}/privkey1.pem"
+  become: yes

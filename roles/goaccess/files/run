@@ -1,0 +1,5 @@
+# vim: ft=sh
+set -euf -o pipefail
+
+LOGS=$(find /srv/reverse_proxy/log/ -name "*access.log")
+/usr/bin/goaccess ${LOGS} --no-global-config --anonymize-ip --output=test.html
